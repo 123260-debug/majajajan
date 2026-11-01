@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>麻雀オンライン</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';document.head.appendChild(s)"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"></head><body>
-<div id="st"><div id="bd"></div>
-<div id="pn"><div class="g" style="font-size:15px;font-weight:700;background:#e9a23a;border:2px solid #fff">ゲームデータ</div>
-<div style="background:#fff;color:#444;padding:6px;border-radius:4px">ゲーム性<div class="g">麻雀(東南戦)</div>ルールの難易度<div style="color:#e9a23a">★★★★★</div>運 ▬▬★▬▬<br>思考 ▬▬▬★▬<br><span id="rm"></span></div>
-<div class="m">ルールと<br>遊び方</div><div class="m" style="background:#4a9d6a">別のゲームで<br>遊んでみる</div><div class="m" style="background:#d64a6a">オンライン対戦<br>部屋コード共有</div></div></div>
-<div id="lb"></div>
+<div id="st">
+ <div id="felt"></div>
+ <div id="scene"><div id="plane"></div></div>
+ <div id="hud"></div><div id="top"></div><div id="pr"></div><div id="hd"></div><div id="ov"></div>
+</div>
+<div id="lb"></div><div id="md"></div><span id="rm" hidden></span>
 <script src="game.js"></script>
 </body></html>
