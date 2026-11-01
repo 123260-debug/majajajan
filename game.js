@@ -7,29 +7,30 @@ const KO=[0,8,9,17,18,26,27,28,29,30,31,32,33];
 let G=null,isHost=false,me=0,peer,hc,room='',names=['あなた','CPU1','CPU2','CPU3'],bots=[0,1,1,1],seatConn={},ar=0,sel=-1,V=null,RULE={len:2,pts:25000},hostTm,chiS=0,kanS=0,lastAuto=-1;
 const sorted=h=>h.slice().sort((a,b)=>a-b),cnt=h=>{const c=Array(34).fill(0);h.forEach(t=>c[t>>2]++);return c};
 
-/* ---------- 牌の絵(SVG) ---------- */
-const FC={},FF="'Shippori Mincho B1','Yu Mincho','Noto Serif JP','Hiragino Mincho ProN',serif";
+/* ---------- 牌の絵(SVG・牌一覧画像に合わせる) ---------- */
+const FC={},FF="'Yuji Boku','Yuji Syuku','Shippori Mincho B1','Yu Mincho','Noto Serif JP',serif";
 const PP=[0,[[30,40]],[[30,22],[30,58]],[[14,14],[30,40],[46,66]],[[18,22],[42,22],[18,58],[42,58]],[[16,16],[44,16],[30,40],[16,64],[44,64]],[[18,16],[42,16],[18,40],[42,40],[18,64],[42,64]],[[12,12],[30,22],[48,32],[18,54],[42,54],[18,70],[42,70]],[[18,12],[42,12],[18,32],[42,32],[18,52],[42,52],[18,70],[42,70]],[[14,14],[30,14],[46,14],[14,40],[30,40],[46,40],[14,66],[30,66],[46,66]]];
-const SP=[0,0,[[30,22],[30,58]],[[30,20],[18,58],[42,58]],[[18,22],[42,22],[18,58],[42,58]],[[16,18],[44,18],[30,40],[16,62],[44,62]],[[14,22],[30,22],[46,22],[14,58],[30,58],[46,58]],[[30,14],[14,40],[30,40],[46,40],[14,66],[30,66],[46,66]],[[12,22],[24,22],[36,22],[48,22],[12,58],[24,58],[36,58],[48,58]],PP[9]];
-function face(k){if(FC[k])return FC[k];const R='#c8202a',B='#1a4fa0',Gn='#177a2a',K='#1b1b1b';
+const SP=[0,0,[[30,22],[30,58]],[[30,20],[18,58],[42,58]],[[18,22],[42,22],[18,58],[42,58]],[[16,18],[44,18],[30,40],[16,62],[44,62]],[[14,22],[30,22],[46,22],[14,58],[30,58],[46,58]],[[30,14],[14,40],[30,40],[46,40],[14,66],[30,66],[46,66]],[[12,24],[24,24],[36,24],[48,24],[12,56],[24,56],[36,56],[48,56]],PP[9]];
+function face(k){if(FC[k])return FC[k];const R='#c0202a',D='#222',Gn='#1b6b34',K='#161616';
  const tx=(t,x,y,z,c)=>`<text x="${x}" y="${y}" font-size="${z}" fill="${c}" font-weight="800" text-anchor="middle" font-family="${FF}">${t}</text>`;
  let s='';
- if(k<9)s=tx(NM[k],30,36,36,K)+tx('萬',30,74,38,R);
- else if(k<18){const n=k-8,r=n==1?19:n<=3?11:n<=5?10:n<=7?8.5:7.5;
-  PP[n].forEach(([x,y],i)=>{const c=n==1?R:n==9?[Gn,Gn,Gn,R,R,R,B,B,B][i]:n==7?(i<3?Gn:R):(n==5&&i==2)?R:i%2?Gn:B;
-   s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${c}" stroke-width="2.6"/><circle cx="${x}" cy="${y}" r="${r*.58}" fill="${c}"/><circle cx="${x}" cy="${y}" r="${r*.2}" fill="#fff"/>`})}
+ if(k<9)s=tx(NM[k],30,37,38,K)+tx('萬',30,76,42,R);
+ else if(k<18){const n=k-8;
+  if(n==1)s=`<circle cx="30" cy="40" r="25" fill="#fff" stroke="${R}" stroke-width="3"/><circle cx="30" cy="40" r="20" fill="none" stroke="${D}" stroke-width="2" stroke-dasharray="3 2"/><circle cx="30" cy="40" r="14" fill="${R}"/><circle cx="30" cy="40" r="9" fill="#fff"/><circle cx="30" cy="40" r="5" fill="${D}"/>`+[0,1,2,3,4,5,6,7].map(i=>`<circle cx="${30+22*Math.cos(i*.785)}" cy="${40+22*Math.sin(i*.785)}" r="2.6" fill="${i%2?D:R}"/>`).join('');
+  else{const r=n<=3?11:n<=5?10:n<=7?8.5:7.5;PP[n].forEach(([x,y],i)=>{const c=n==5?(i==2?R:D):n==6?(i<2?D:R):n==7?(i<3?D:R):n==9?(i>=3&&i<6?R:D):D;
+   s+=`<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" stroke="${c}" stroke-width="2.4"/><circle cx="${x}" cy="${y}" r="${r*.72}" fill="none" stroke="${c}" stroke-width="1.2" stroke-dasharray="1.6 1.6"/><circle cx="${x}" cy="${y}" r="${r*.4}" fill="${c}"/><circle cx="${x}" cy="${y}" r="${r*.13}" fill="#fff"/>`})}}
  else if(k<27){const n=k-17;
-  if(n==1)s=`<ellipse cx="30" cy="46" rx="13" ry="19" fill="${Gn}"/><circle cx="30" cy="22" r="9" fill="${Gn}"/><circle cx="34" cy="20" r="2.4" fill="#fff"/><path d="M30 62L20 76M30 62L40 76M22 38Q30 50 38 38" stroke="${R}" stroke-width="3" fill="none"/>`;
-  else{const h=n>=7?20:24;SP[n].forEach(([x,y],i)=>{const c=(n==3&&i==0)||(n==5&&i==2)||(n==7&&i==0)||(n==9&&i>=3&&i<6)?R:Gn;
-   s+=`<rect x="${x-4.5}" y="${y-h/2}" width="9" height="${h}" rx="4" fill="${c}"/><rect x="${x-4.5}" y="${y-1.5}" width="9" height="3" fill="#fff" opacity=".85"/><rect x="${x-1}" y="${y-h/2+3}" width="2" height="${h-6}" fill="#fff" opacity=".35"/>`})}}
- else if(k<31)s=tx(W[k-27],30,58,54,K);
- else if(k==31)s=`<rect x="9" y="10" width="42" height="60" rx="5" fill="none" stroke="${B}" stroke-width="4"/><rect x="15" y="16" width="30" height="48" rx="3" fill="none" stroke="${B}" stroke-width="1.5"/>`;
- else s=tx(k==32?'發':'中',30,60,56,k==32?Gn:R);
+  if(n==1)s=`<ellipse cx="30" cy="48" rx="13" ry="19" fill="${Gn}"/><circle cx="30" cy="22" r="9" fill="${Gn}"/><path d="M26 14Q30 4 34 14" stroke="${R}" stroke-width="3" fill="none"/><circle cx="34" cy="20" r="2.4" fill="#fff"/><path d="M22 40Q30 52 38 40M30 64L20 76M30 64L40 76" stroke="${R}" stroke-width="3" fill="none"/><path d="M30 28v30" stroke="#fff" stroke-width="1.5" opacity=".6"/>`;
+  else{const h=n>=7?20:24;SP[n].forEach(([x,y],i)=>{const c=(n==3&&i==0)||(n==5&&i==2)||(n==7&&i==0)||(n==9&&i%3==1)?R:Gn,rt=n==8?((i<4?i%2:1-i%2)?-24:24):0;
+   s+=`<g transform="rotate(${rt} ${x} ${y})"><rect x="${x-4.5}" y="${y-h/2}" width="9" height="${h}" rx="3.5" fill="${c}"/><rect x="${x-4.5}" y="${y-h/2+1.5}" width="9" height="2.5" fill="#fff" opacity=".9"/><rect x="${x-4.5}" y="${y+h/2-4}" width="9" height="2.5" fill="#fff" opacity=".9"/><rect x="${x-4.5}" y="${y-1.2}" width="9" height="2.4" fill="#fff" opacity=".8"/></g>`})}}
+ else if(k<31)s=tx(W[k-27],30,60,58,K);
+ else if(k==31)s='';
+ else s=tx(k==32?'發':'中',30,60,58,k==32?Gn:R);
  return FC[k]=`<svg viewBox="0 0 60 80">${s}</svg>`}
 const T=(id,c,e)=>`<span class="tl ${c}" ${e||''}>${face(id>>2)}</span>`;
 
-/* ---------- 麻雀ロジック ---------- */
-const cl=s=>G.melds[s].every(m=>m.cl);
+/* ---------- 麻雀ロジック(全役・符計算) ---------- */
+const cl=s=>G.melds[s].every(m=>m.cl),isT=k=>k>=27||k%9==0||k%9==8,isH=k=>k>=27,GRN=[19,20,21,23,25,32];
 function mk(c){const i=c.findIndex(x=>x>0);if(i<0)return true;
  if(c[i]>=3){c[i]-=3;const r=mk(c);c[i]+=3;if(r)return true}
  if(i<27&&i%9<7&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;const r=mk(c);c[i]++;c[i+1]++;c[i+2]++;if(r)return true}
@@ -40,30 +41,73 @@ function win(c,nm){
  for(let i=0;i<34;i++)if(c[i]>=2){c[i]-=2;const r=mk(c);c[i]+=2;if(r)return true}
  return false}
 function tenpai(c,nm){for(let k=0;k<34;k++)if(c[k]<4){c[k]++;const r=win(c,nm);c[k]--;if(r)return true}return false}
-function yk(s,c,ts){const m=G.melds[s],ct=cl(s),all=c.slice(),y=[];m.forEach(x=>x.t.forEach(t=>all[t>>2]++));
- if(!m.length&&KO.every(k=>c[k])&&KO.reduce((a,k)=>a+c[k],0)==14)return[['国士無双',13]];
- if(all.every((x,k)=>!x||k>=27))return[['字一色',13]];
- if([31,32,33].every(k=>all[k]>=3))return[['大三元',13]];
- if(G.rii[s])y.push(['リーチ',1]);if(ct&&ts)y.push(['門前清自摸和',1]);
- if(all.every((x,k)=>!x||(k<27&&k%9>0&&k%9<8)))y.push(['断么九',1]);
- [31,32,33,27+(s-G.dealer+4)%4,27+(G.kyoku>3?1:0)].forEach((k,i)=>{if(all[k]>=3)y.push([k>30?'役牌:'+KN[k]:(i==3?'自風:':'場風:')+W[k-27],1])});
- const ss=new Set(),ho=all.some((x,k)=>x&&k>=27);all.forEach((x,k)=>{if(x&&k<27)ss.add(k/9|0)});
- if(ss.size==1)y.push(ho?['混一色',ct?3:2]:['清一色',ct?6:5]);
- const d=[31,32,33].map(k=>all[k]).sort();if(d[0]==2&&d[1]>=3&&d[2]>=3)y.push(['小三元',2]);
- if(m.every(x=>x.t[0]>>2==x.t[1]>>2)&&c.every(x=>x==0||x==2||x>=3)&&c.filter(x=>x==2).length==1)y.push(['対々和',2]);
- if(!m.length&&c.filter(x=>x==2).length==7)y.push(['七対子',2]);
- return y}
-const han=(s,c,ts)=>yk(s,c,ts).reduce((a,x)=>a+x[1],0);
+function decomps(c){const out=[],rec=(acc,p)=>{const i=c.findIndex(x=>x>0);if(i<0){out.push({p,s:acc.slice()});return}
+ if(c[i]>=3){c[i]-=3;acc.push({k:i,q:'k'});rec(acc,p);acc.pop();c[i]+=3}
+ if(i<27&&i%9<7&&c[i+1]&&c[i+2]){c[i]--;c[i+1]--;c[i+2]--;acc.push({k:i,q:'s'});rec(acc,p);acc.pop();c[i]++;c[i+1]++;c[i+2]++}};
+ for(let p=0;p<34;p++)if(c[p]>=2){c[p]-=2;rec([],p);c[p]+=2}return out}
+const mset=m=>{const a=m.t.map(t=>t>>2);return a.length==4||a[0]==a[1]?{k:a[0],q:'k',o:!m.cl,kan:a.length==4}:{k:Math.min(...a),q:'s',o:1}};
 const dk=t=>{const k=t>>2;return k<27?(k%9==8?k-8:k+1):k<31?(k==30?27:k+1):(k==33?31:k+1)};
-function doraN(s,c){let n=0;const all=c.slice();G.melds[s].forEach(x=>x.t.forEach(t=>all[t>>2]++));for(let i=0;i<=G.kn;i++)n+=all[dk(G.dead[4+2*i])];return n}
+const doraN=a=>{let n=0;for(let i=0;i<=G.kn;i++)n+=a[dk(G.dead[4+2*i])];return n},uraN=a=>{let n=0;for(let i=0;i<=G.kn;i++)n+=a[dk(G.dead[5+2*i])];return n};
+function common(s,all,closed,ts,kans,F){const ym=[],y=[],sw=27+(s-G.dealer+4)%4,rw=27+(G.kyoku>3?1:0),ks=[];all.forEach((x,k)=>{if(x)ks.push(k)});
+ const ho=ks.some(isH),ss=new Set(ks.filter(k=>k<27).map(k=>(k/9)|0));
+ if(F.th)ym.push(['天和',13]);if(F.ch)ym.push(['地和',13]);
+ if(ks.every(isH))ym.push(['字一色',13]);if(ks.every(k=>GRN.includes(k)))ym.push(['緑一色',13]);
+ if(ks.every(k=>isT(k)&&k<27))ym.push(['清老頭',13]);if([31,32,33].every(k=>all[k]>=3))ym.push(['大三元',13]);
+ const wn=[27,28,29,30].map(k=>all[k]);if(wn.every(x=>x>=3))ym.push(['大四喜',13]);else if(wn.filter(x=>x>=3).length==3&&wn.includes(2))ym.push(['小四喜',13]);
+ if(kans==4)ym.push(['四槓子',13]);
+ if(ym.length)return{ym,y};
+ if(F.dbl)y.push(['ダブルリーチ',2]);else if(G.rii[s])y.push(['リーチ',1]);
+ if(G.rii[s]&&G.ip[s])y.push(['一発',1]);
+ if(closed&&ts)y.push(['門前清自摸和',1]);
+ if(ks.every(k=>!isT(k)))y.push(['断么九',1]);
+ [[31,'役牌:白'],[32,'役牌:發'],[33,'役牌:中'],[sw,'自風:'+W[sw-27]],[rw,'場風:'+W[rw-27]]].forEach(([k,n])=>{if(all[k]>=3)y.push([n,1])});
+ if(ss.size==1)y.push(ho?['混一色',closed?3:2]:['清一色',closed?6:5]);
+ const d3=[31,32,33].map(k=>all[k]).sort();if(d3[0]==2&&d3[1]>=3&&d3[2]>=3)y.push(['小三元',2]);
+ if(ho&&ks.every(isT))y.push(['混老頭',2]);
+ if(F.rin)y.push(['嶺上開花',1]);if(F.chk)y.push(['槍槓',1]);if(F.hai)y.push([ts?'海底摸月':'河底撈魚',1]);
+ return{ym,y}}
+const base=r=>r.ym?8000*r.ym:r.han>=13?8000:r.han>=11?6000:r.han>=8?4000:r.han>=6?3000:r.han>=5?2000:Math.min(2000,r.fu*2**(r.han+2));
+function evalWin(s,c,wk,ts,F){const M=G.melds[s],ms=M.map(mset),closed=cl(s),nm=M.length,all=c.slice();M.forEach(m=>m.t.forEach(t=>all[t>>2]++));
+ const sw=27+(s-G.dealer+4)%4,rw=27+(G.kyoku>3?1:0),cm=common(s,all,closed,ts,ms.filter(x=>x.kan).length,F),cs=[];
+ const mkc=y=>{const ym=y.filter(a=>a[1]>=13);return ym.length?{y:ym,fu:0,han:13*ym.length,ym:ym.length}:{y,fu:0,han:y.reduce((a,x)=>a+x[1],0),ym:0}};
+ if(!nm&&KO.every(k=>c[k])&&KO.reduce((a,k)=>a+c[k],0)==14)cs.push(mkc([['国士無双',13],...cm.ym.filter(a=>a[0]=='天和'||a[0]=='地和')]));
+ if(!nm&&c.every(x=>x==0||x==2)&&c.filter(x=>x==2).length==7){const r=mkc([...cm.ym,...cm.y,['七対子',2]]);r.fu=25;cs.push(r)}
+ if(win(c.slice(),nm))decomps(c.slice()).forEach(d=>{const ws=[];
+  if(d.p==wk)ws.push({t:'tan',i:-1});
+  d.s.forEach((x,i)=>{if(x.q=='k'&&x.k==wk)ws.push({t:'shan',i});else if(x.q=='s'&&wk>=x.k&&wk<=x.k+2){const o=wk-x.k,e=x.k%9;ws.push({t:o==1?'kan':(o==0&&e==6)||(o==2&&e==0)?'pen':'ryan',i})}});
+  ws.forEach(w=>{const S=d.s.map((x,i)=>({...x,o:w.t=='shan'&&w.i==i&&!ts?1:0})).concat(ms),sq=S.filter(x=>x.q=='s'),tr=S.filter(x=>x.q=='k'),anko=tr.filter(x=>!x.o).length;
+   const y=[...cm.ym,...cm.y];
+   if(closed&&anko==4)y.push(['四暗刻',13]);
+   const ks=[];all.forEach((x,k)=>{if(x)ks.push(k)});
+   if(!nm&&ks.every(k=>k<27&&((k/9)|0)==((ks[0]/9)|0))&&[3,1,1,1,1,1,1,1,3].every((b,i)=>all[((ks[0]/9)|0)*9+i]>=b))y.push(['九蓮宝燈',13]);
+   if(!cm.ym.length&&!y.some(a=>a[1]>=13)){
+    const pH=d.p>=31||d.p==sw||d.p==rw;
+    if(closed&&sq.length==4&&w.t=='ryan'&&!pH)y.push(['平和',1]);
+    if(closed){const m={};sq.forEach(x=>m[x.k]=(m[x.k]||0)+1);const n=Object.values(m).reduce((a,v)=>a+(v>>1),0);if(n>=2)y.push(['二盃口',3]);else if(n==1)y.push(['一盃口',1])}
+    for(let b=0;b<7;b++)if([0,9,18].every(o=>sq.some(x=>x.k==b+o)))y.push(['三色同順',closed?2:1]);
+    [0,9,18].forEach(o=>{if([0,3,6].every(b=>sq.some(x=>x.k==o+b)))y.push(['一気通貫',closed?2:1])});
+    if(tr.length==4)y.push(['対々和',2]);if(anko==3)y.push(['三暗刻',2]);
+    for(let b=0;b<9;b++)if([0,9,18].every(o=>tr.some(x=>x.k==b+o)))y.push(['三色同刻',2]);
+    if(S.filter(x=>x.kan).length==3)y.push(['三槓子',2]);
+    if([...S.map(x=>x.q=='s'?(x.k%9==0||x.k%9==6):isT(x.k)),isT(d.p)].every(Boolean)&&sq.length)y.push(ks.some(isH)?['混全帯么九',closed?2:1]:['純全帯么九',closed?3:2])}
+   const r=mkc(y);
+   if(!r.ym){let fu=20+(ts?2:closed?10:0);S.forEach(x=>{if(x.q=='k'){let f=isT(x.k)?4:2;if(x.kan)f*=4;if(!x.o)f*=2;fu+=f}});
+    if(d.p>=31)fu+=2;if(d.p==sw)fu+=2;if(d.p==rw)fu+=2;if(w.t=='tan'||w.t=='kan'||w.t=='pen')fu+=2;
+    if(y.some(a=>a[0]=='平和'))fu=ts?20:30;else{fu=Math.ceil(fu/10)*10;if(!closed&&fu<30)fu=30}r.fu=fu}
+   cs.push(r)})});
+ const ok=cs.filter(r=>r.han>0);if(!ok.length)return null;
+ ok.forEach(r=>{if(!r.ym){const dn=doraN(all),un=G.rii[s]?uraN(all):0;if(dn){r.y.push(['ドラ',dn]);r.han+=dn}if(un){r.y.push(['裏ドラ',un]);r.han+=un}}});
+ return ok.sort((a,b)=>base(b)-base(a)||b.han-a.han)[0]}
+const flags=(s,ts)=>({hai:G.wall.length==0,rin:ts&&G.rinF==s,chk:!!G.chk,dbl:G.dbl[s],th:ts&&s==G.dealer&&!G.anyCall&&G.river[s].length==0,ch:ts&&s!=G.dealer&&!G.anyCall&&G.river[s].length==0});
+function furiten(s){if(G.tf[s]||G.rf[s])return true;const c=cnt(G.hands[s]),nm=G.melds[s].length;return G.dsc[s].some(k=>{if(c[k]>=4)return false;c[k]++;const r=win(c,nm);c[k]--;return r})}
 function dOpts(s){const h=G.hands[s],c=cnt(h),o={},nm=G.melds[s].length;
- if(win(c,nm)&&han(s,c,1)>0)o.tsumo=1;
+ if(G.drawn>=0&&win(c.slice(),nm)&&evalWin(s,c,G.drawn>>2,1,flags(s,1)))o.tsumo=1;
  if(!G.rii[s]&&cl(s)&&G.sc[s]>=1000&&G.wall.length>=4)o.rii=h.filter(t=>{const d=cnt(h);d[t>>2]--;return tenpai(d,nm)});
  if(!G.rii[s]&&G.kn<4&&G.wall.length>0){const k=[];for(let i=0;i<34;i++)if(c[i]==4)k.push({k:i,a:1});
   G.melds[s].forEach((m,j)=>{if(!m.cl&&m.t.length==3&&m.t[0]>>2==m.t[1]>>2&&c[m.t[0]>>2]>=1)k.push({k:m.t[0]>>2,j})});if(k.length)o.kan=k}
  return o}
 function cOpts(s,t,f){const c=cnt(G.hands[s]),k=t>>2,o={},nm=G.melds[s].length;
- c[k]++;if(win(c,nm)&&han(s,c,0)>0)o.ron=1;c[k]--;
+ c[k]++;if(win(c.slice(),nm)&&!furiten(s)&&evalWin(s,c,k,0,flags(s,0)))o.ron=1;c[k]--;
  if(!G.rii[s]){if(c[k]>=2)o.pon=1;if(c[k]>=3&&G.kn<4&&G.wall.length>0)o.kan=1;
   if((f+1)%4==s&&k<27){const l=[];[[-2,-1],[-1,1],[1,2]].forEach(([a,b])=>{const x=k%9+a,y=k%9+b;if(x>=0&&y<=8&&c[k+a]&&c[k+b])l.push([k+a,k+b])});if(l.length)o.chi=l}}
  return Object.keys(o).length?o:null}
@@ -72,32 +116,43 @@ function cOpts(s,t,f){const c=cnt(G.hands[s]),k=t>>2,o={},nm=G.melds[s].length;
 function newK(){const w=[...Array(136).keys()];
  for(let i=135;i>0;i--){const j=Math.random()*(i+1)|0;[w[i],w[j]]=[w[j],w[i]]}
  G.hands=[0,1,2,3].map(()=>w.splice(0,13));G.dead=w.splice(0,14);G.wall=w;G.kn=0;G.melds=[[],[],[],[]];G.river=[[],[],[],[]];
- G.rii=[0,0,0,0];G.ri=[-1,-1,-1,-1];G.res=null;G.rep=false;G.turn=G.dealer;G.calls=null;G.drawn=-1;G.last=-1;G.from=0;draw()}
-function draw(){if(!G.wall.length){G.res={draw:1,ch:[0,0,0,0]};G.ph='e';G.rep=true;G.hb++;return send()}
- const t=G.wall.pop();G.hands[G.turn].push(t);G.drawn=t;G.ph='d';G.calls=null;send();bot()}
-function rin(s){G.kn++;const t=G.dead[G.kn-1];G.hands[s].push(t);G.drawn=t;G.ph='d';G.calls=null;G.turn=s;send();bot()}
-function disc(s,t,r){const h=G.hands[s];h.splice(h.indexOf(t),1);G.river[s].push(t);G.last=t;G.from=s;G.drawn=-1;G.sq++;
- if(r){G.rii[s]=1;G.ri[s]=G.river[s].length-1;G.sc[s]-=1000;G.pot++}
+ G.rii=[0,0,0,0];G.ri=[-1,-1,-1,-1];G.ip=[0,0,0,0];G.dbl=[0,0,0,0];G.tf=[0,0,0,0];G.rf=[0,0,0,0];G.nc=[0,0,0,0];G.dsc=[[],[],[],[]];
+ G.anyCall=false;G.rinF=-1;G.chk=0;G.res=null;G.rep=false;G.turn=G.dealer;G.calls=null;G.drawn=-1;G.last=-1;G.from=0;draw()}
+function draw(){if(!G.wall.length)return ryu();
+ const t=G.wall.pop();G.hands[G.turn].push(t);G.drawn=t;G.ph='d';G.calls=null;G.rinF=-1;send();bot()}
+function rin(s){G.kn++;const t=G.dead[G.kn-1];G.hands[s].push(t);G.drawn=t;G.ph='d';G.calls=null;G.turn=s;G.rinF=s;send();bot()}
+function disc(s,t,r){const h=G.hands[s];h.splice(h.indexOf(t),1);G.river[s].push(t);G.dsc[s].push(t>>2);G.tf[s]=0;G.rinF=-1;G.last=t;G.from=s;G.drawn=-1;G.sq++;
+ if(G.rii[s])G.ip[s]=0;
+ if(r){G.rii[s]=1;G.ri[s]=G.river[s].length-1;G.sc[s]-=1000;G.pot++;G.ip[s]=1;if(G.river[s].length==1&&!G.anyCall)G.dbl[s]=1}
  const c={};let n=0;for(let i=1;i<4;i++){const p=(s+i)%4,o=cOpts(p,t,s);if(o){c[p]=o;n++}}
  if(n){G.ph='c';G.calls=c;G.resp={};send();bot()}else{G.turn=(s+1)%4;draw()}}
-function kan(s,x){const h=G.hands[s];
+function kan(s,x){const h=G.hands[s];G.anyCall=true;G.ip.fill(0);
  if(x.a){const u=[];for(let i=h.length-1;i>=0;i--)if(h[i]>>2==x.k)u.push(h.splice(i,1)[0]);G.melds[s].push({t:u,f:s,cl:1})}
- else G.melds[s][x.j].t.push(h.splice(h.findIndex(y=>y>>2==x.k),1)[0]);
+ else{const t=h.splice(h.findIndex(y=>y>>2==x.k),1)[0];G.melds[s][x.j].t.push(t);
+  const cs={};let n=0;G.chk=1;for(let i=1;i<4;i++){const p=(s+i)%4,c=cnt(G.hands[p]);c[t>>2]++;if(win(c.slice(),G.melds[p].length)&&!furiten(p)&&evalWin(p,c,t>>2,0,flags(p,0))){cs[p]={ron:1};n++}}
+  if(n){G.last=t;G.from=s;G.kk=s;G.ph='c';G.calls=cs;G.resp={};send();bot();return}G.chk=0}
  rin(s)}
 function meld(s,k){const h=G.hands[s],t=G.last,kk=t>>2,u=[],need=k=='pon'?[kk,kk]:k=='kan'?[kk,kk,kk]:G.calls[s].chi[+k.slice(3)];
  need.forEach(x=>u.push(h.splice(h.findIndex(y=>y>>2==x),1)[0]));
- G.river[G.from].pop();G.melds[s].push({t:[t,...u],f:G.from,cl:0});G.turn=s;G.calls=null;
+ G.river[G.from].pop();G.nc[G.from]=1;G.anyCall=true;G.ip.fill(0);G.melds[s].push({t:[t,...u],f:G.from,cl:0});G.turn=s;G.calls=null;
  if(k=='kan')return rin(s);G.ph='d';G.drawn=-1;send();bot()}
 function win_(s,f){const ts=s==f,c=cnt(G.hands[s]);if(!ts)c[G.last>>2]++;
- const y=yk(s,c,ts),dr=doraN(s,c);let h=y.reduce((a,x)=>a+x[1],0);if(dr)y.push(['ドラ',dr]);h+=dr;
- const b=h>=13?8000:h>=11?6000:h>=8?4000:h>=6?3000:h>=5?2000:Math.min(2000,30*2**(h+2)),d=s==G.dealer,u=x=>Math.ceil(x/100)*100,ch=[0,0,0,0];
+ const r=evalWin(s,c,ts?G.drawn>>2:G.last>>2,ts,flags(s,ts)),b=base(r),d=s==G.dealer,u=x=>Math.ceil(x/100)*100,ch=[0,0,0,0],sc0=G.sc.slice();
  if(ts){for(let i=0;i<4;i++)if(i!=s){const v=u(b*(d||i==G.dealer?2:1))+G.hb*100;ch[i]-=v;ch[s]+=v}}
  else{const v=u(b*(d?6:4))+G.hb*300;ch[f]-=v;ch[s]+=v}
  ch[s]+=G.pot*1000;G.pot=0;ch.forEach((v,i)=>G.sc[i]+=v);
  const hh=G.hands.map(sorted);if(ts)hh[s].splice(hh[s].indexOf(G.drawn),1);
- G.res={w:s,f,h,ch,ts,y,hands:hh,tile:ts?G.drawn:G.last};G.ph='e';G.rep=d;G.hb=d?G.hb+1:0;send()}
+ G.res={w:s,f,ts,y:r.y,h:r.han,fu:r.fu,ym:r.ym,ch,sc0,hands:hh,tile:ts?G.drawn:G.last,di:Array.from({length:G.kn+1},(_,i)=>G.dead[4+2*i]),ui:G.rii[s]?Array.from({length:G.kn+1},(_,i)=>G.dead[5+2*i]):[]};
+ G.chk=0;G.ph='e';G.rep=d;G.hb=d?G.hb+1:0;send()}
+function ryu(){const tp=[0,1,2,3].map(s=>tenpai(cnt(G.hands[s]),G.melds[s].length)),ch=[0,0,0,0],sc0=G.sc.slice();
+ const ng=[0,1,2,3].filter(s=>!G.nc[s]&&G.river[s].length&&G.river[s].every(t=>isT(t>>2)));
+ if(ng.length)ng.forEach(s=>{for(let i=0;i<4;i++)if(i!=s){const v=s==G.dealer||i==G.dealer?4000:2000;ch[i]-=v;ch[s]+=v}});
+ else{const n=tp.filter(Boolean).length;if(n&&n<4)tp.forEach((t,i)=>ch[i]+=t?3000/n:-3000/(4-n))}
+ ch.forEach((v,i)=>G.sc[i]+=v);
+ G.res={draw:1,ch,sc0,tp,ng,hands:G.hands.map(sorted)};G.ph='e';G.rep=tp[G.dealer];G.hb++;send()}
 function resolve(){if(G.ph!='c')return;const p=Object.keys(G.calls);if(!p.every(x=>x in G.resp))return;
  let q=p.find(x=>G.resp[x]=='ron');if(q!=null)return win_(+q,G.from);
+ if(G.chk){G.chk=0;return rin(G.kk)}
  q=p.find(x=>G.resp[x]=='pon'||G.resp[x]=='kan');if(q!=null)return meld(+q,G.resp[q]);
  q=p.find(x=>G.resp[x].startsWith('chi'));if(q!=null)return meld(+q,G.resp[q]);
  G.turn=(G.from+1)%4;draw()}
@@ -110,7 +165,8 @@ function bot(){setTimeout(()=>{if(!G||G.ph=='e'||G.ph=='o')return;
    h.forEach(t=>{const k=t>>2,x=k%9,n=(d,v)=>(k<27&&x+d>=0&&x+d<=8&&c[k+d])?v:0;
     const sc=c[k]*10+n(-1,4)+n(1,4)+n(-2,2)+n(2,2)+(k<27&&x>0&&x<8?1:0);if(sc<bs){bs=sc;best=t}});
    return disc(s,best,o.rii&&o.rii.includes(best)?1:0)}}
- else if(G.ph=='c'){for(const p in G.calls)if(bots[p]&&!(p in G.resp))G.resp[p]=G.calls[p].ron?'ron':'pass';resolve()}},pref.spd)}
+ else if(G.ph=='c'){for(const p in G.calls)if(bots[p]&&!(p in G.resp)){const o=G.calls[p],k=G.last>>2,sw=27+(p-G.dealer+4)%4,rw=27+(G.kyoku>3?1:0);
+   G.resp[p]=o.ron?'ron':(o.pon&&(k>=31||k==sw||k==rw))?'pon':'pass'}resolve()}},pref.spd)}
 function act(s,a){if(!G)return;
  if(a.k=='next'){if(G.ph=='e'&&s==0){if(!G.rep)G.kyoku++;G.dealer=G.kyoku%4;if(G.kyoku>=G.rl.len*4||G.sc.some(x=>x<0)){G.ph='o';send()}else newK()}return}
  if(G.ph=='d'&&G.turn==s){
@@ -119,10 +175,12 @@ function act(s,a){if(!G)return;
   if(a.k=='tsumo'&&dOpts(s).tsumo)return win_(s,s);
   if(a.k=='kan'){const o=dOpts(s);if(o.kan&&o.kan[a.i])return kan(s,o.kan[a.i])}}
  if(G.ph=='c'&&G.calls[s]&&!(s in G.resp)){const o=G.calls[s];
-  if((a.k=='ron'&&o.ron)||(a.k=='pon'&&o.pon)||(a.k=='kan'&&o.kan)||(a.k=='chi'&&o.chi&&o.chi[a.i])||a.k=='pass'){G.resp[s]=a.k=='chi'?'chi'+a.i:a.k;resolve()}}}
-function view(s){const g=G;return{me:s,n:names,sc:g.sc,dealer:g.dealer,kyoku:g.kyoku,turn:g.turn,ph:g.ph,river:g.river,melds:g.melds,rii:g.rii,ri:g.ri,
+  if((a.k=='ron'&&o.ron)||(a.k=='pon'&&o.pon)||(a.k=='kan'&&o.kan)||(a.k=='chi'&&o.chi&&o.chi[a.i])||a.k=='pass'){
+   if(a.k=='pass'&&o.ron){if(G.rii[s])G.rf[s]=1;else G.tf[s]=1}
+   G.resp[s]=a.k=='chi'?'chi'+a.i:a.k;resolve()}}}
+function view(s){const g=G;return{me:s,n:names.slice(),sc:g.sc.slice(),dealer:g.dealer,kyoku:g.kyoku,turn:g.turn,ph:g.ph,river:g.river.map(r=>r.slice()),melds:g.melds.map(m=>m.map(x=>({...x,t:x.t.slice()}))),rii:g.rii.slice(),ri:g.ri.slice(),
  hn:g.hands.map(h=>h.length),hand:sorted(g.hands[s].filter(t=>t!=g.drawn||g.turn!=s||g.ph!='d')),drawn:g.turn==s&&g.ph=='d'?g.drawn:-1,
- wall:g.wall.length,res:g.res,pot:g.pot,hb:g.hb,lt:g.last,lf:g.from,sq:g.sq,dr:Array.from({length:g.kn+1},(_,i)=>g.dead[4+2*i]),rule:g.rl,room,
+ wall:g.wall.length,res:g.res,pot:g.pot,hb:g.hb,lt:g.last,lf:g.from,sq:g.sq,dr:Array.from({length:g.kn+1},(_,i)=>g.dead[4+2*i]),rule:g.rl,room,fu:g.ph=='d'||g.ph=='c'?furiten(s):false,
  o:g.ph=='d'&&g.turn==s?dOpts(s):(g.ph=='c'&&g.calls[s]&&!(s in g.resp)?g.calls[s]:undefined)}}
 function send(){for(let s=0;s<4;s++){if(bots[s])continue;const v=view(s);if(s==0)render(v);else seatConn[s]&&seatConn[s].send({t:'v',v})}}
 function A(a){if(isHost)act(0,a);else hc.send({t:'a',a})}
@@ -185,9 +243,15 @@ function rulesM(){const R=(G&&G.rl)||(V&&V.rule)||RULE,ed=isHost&&!G;
 function menuM(){md(`<h2>メニュー</h2><button class="mbn" onclick="yakuM()">役表</button><button class="mbn" onclick="rulesM()">ルール設定</button><button class="mbn" onclick="leave()">ロビーに戻る(退室)</button><button class="bk2" onclick="closeM()">← 閉じる</button>`)}
 
 /* ---------- 描画 ---------- */
+let PV=null,anim={};
 function pick(t){const v=V,o=v.o||{};if(!(v.ph=='d'&&v.turn==v.me))return;
  if(ar&&!(o.rii||[]).includes(t))return;if(v.rii[v.me]&&t!=v.drawn)return;
- if(!pref.dbl||sel==t){sel=-1;const r=ar;ar=0;A({k:'d',t,r:r?1:0})}else{sel=t;render(v)}}
+ if(!pref.dbl||sel==t){sel=-1;const r=ar;ar=0;A({k:'d',t,r:r?1:0})}
+ else{sel=t;document.querySelectorAll('#hd .mh').forEach(e=>e.classList.toggle('sel',+e.dataset.t==t))}}
+function meldH(m,s,sz){const rel=(m.f-s+4)%4,call=m.t[0];
+ if(m.cl)return m.t.map((t,j)=>j==0||j==3?`<span class="tl fd ${sz}"></span>`:T(t,sz)).join('');
+ const o=m.t.slice(1).sort((a,b)=>a-b),pos=rel==3||m.t.length==3&&rel==0?0:rel==2?1:o.length,it=o.map(t=>T(t,sz));
+ it.splice(Math.min(pos,it.length),0,`<span class="sw ${sz}">${T(call,sz)}</span>`);return it.join('')}
 function prompt_(v){const o=v.o;if(!o)return'';const B=(t,c,f)=>`<button class="ab ${c}" onclick="${f}">${t}</button>`;let h='',tl='',sub='';
  if(v.ph=='c'){const l=[];if(o.ron)l.push('ロン');if(pref.naki){if(o.pon)l.push('ポン');if(o.chi)l.push('チー');if(o.kan)l.push('カン')}
   tl=`${T(v.lt,'sm')}<span>${esc(v.n[v.lf])}の「${KN[v.lt>>2]}」 — ${l.join('・')}できます</span>`;
@@ -202,30 +266,45 @@ function prompt_(v){const o=v.o;if(!o)return'';const B=(t,c,f)=>`<button class="
   if(!h)return'';tl=o.tsumo?'和了できます!':ar?'リーチする牌を選んでください':'行動を選べます';
   if(kanS&&o.kan)sub=o.kan.map((x,i)=>`<span class="pk" onclick="kanS=0;A({k:'kan',i:${i}})">${T(x.k*4,'sm')}<br>${x.a?'暗槓':'加槓'}</span>`).join('')}
  return `<div class="pt">${tl}</div><div>${h}</div>${sub?`<div>${sub}</div>`:''}`}
-function resHTML(v){const r=v.res,nx=v.me==0?`<button class="go" onclick="A({k:'next'})">次の局へ</button>`:'<div style="font-size:15px">ホストが進めるのを待っています</div>';
- if(v.ph=='o'){const rk=[0,1,2,3].sort((a,b)=>v.sc[b]-v.sc[a]);return `<h2>対局終了</h2>${rk.map((i,n)=>`<div style="font-size:24px">${n+1}位 ${esc(v.n[i])} <b style="color:#ffe9a8">${v.sc[i]}</b></div>`).join('')}<button class="go" onclick="resetAll()">ロビーに戻る</button>`}
- const sc=`<div style="font-size:15px">${[0,1,2,3].map(i=>`${esc(v.n[i])} ${v.sc[i]}(${r.ch[i]>0?'+':''}${r.ch[i]})`).join(' ／ ')}</div>`;
- if(r.draw)return `<h2>流局</h2>${sc}${nx}`;
- const w=r.w,lab=r.h>=13?'役満':r.h>=11?'三倍満':r.h>=8?'倍満':r.h>=6?'跳満':r.h>=5?'満貫':'';
- return `<h2>${esc(v.n[w])} ${r.ts?'ツモ':'ロン'}</h2><div class="wh">${r.hands[w].map(t=>T(t,'sm')).join('')}${v.melds[w].map(m=>'<span class="gp"></span>'+m.t.map(t=>T(t,'sm')).join('')).join('')}<span class="gp"></span>${T(r.tile,'sm')}</div><table class="yt">${r.y.map(x=>`<tr><td>${x[0]}</td><td>${x[1]>=13?'役満':x[1]+'翻'}</td></tr>`).join('')}</table><div class="big">${r.h>=13?'役満':r.h+'翻'} ${lab}</div>${sc}${nx}`}
-function render(v){V=v;if(!(v.ph=='d'&&v.turn==v.me)){sel=-1;ar=0}
- const seat=q=>(v.me+q)%4,at=v.ph=='d'&&v.turn==v.me,o=v.o||{},rot=[0,-90,180,90];
- const lab=(v.kyoku<4?'東':'南')+NM[v.kyoku%4]+'局';
- let h=`<div id="cb"><div class="cm"><div class="rd">${lab}</div><div class="rm">残 ${v.wall}</div>${v.hb?`<div class="hb2">${v.hb}本場</div>`:''}</div></div>`;
- for(let q=0;q<4;q++){const i=seat(q),wd=(i-v.dealer+4)%4;
-  h+=`<div class="sg" style="transform:rotate(${rot[q]}deg)"><div class="pad${v.turn==i&&(v.ph=='d'||v.ph=='c')?' on':''}${wd==0?' dl':''}"><span>${W[wd]}</span><b>${v.sc[i]}</b></div>`
+const WN=(i,v)=>W[(i-v.dealer+4)%4];
+function sbH(v,r,hands){return `<div class="sb">${[0,1,2,3].map(i=>{const d=r.ch[i];return `<div class="sc${i==v.me?' me':''}${r.w===i?' wn':''}"><span>${WN(i,v)}家 ${esc(v.n[i])}</span><b class="cu" data-a="${r.sc0[i]}" data-b="${v.sc[i]}">${r.sc0[i]}</b><em class="${d>0?'up':d<0?'dn':''}">${d?(d>0?'+':'')+d:'±0'}</em>${hands?`<div class="th">${r.tp[i]?r.hands[i].map(t=>T(t,'sm')).join(''):'<i>ノーテン</i>'}</div>`:''}</div>`}).join('')}</div>`}
+function animCU(){if(!document.querySelectorAll||typeof requestAnimationFrame=='undefined')return;const t0=Date.now();
+ const f=()=>{const p=Math.min(1,(Date.now()-t0-500)/900);document.querySelectorAll('.cu').forEach(e=>{const a=+e.dataset.a,b=+e.dataset.b;e.textContent=Math.round(a+(b-a)*(p<0?0:1-(1-p)*(1-p)))});if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+function resHTML(v){const r=v.res,lab=(v.kyoku<4?'東':'南')+NM[v.kyoku%4]+'局',
+ nx=v.me==0?`<button class="go" onclick="A({k:'next'})">次の局へ</button>`:'<div class="wt">ホストが進めるのを待っています</div>';
+ if(v.ph=='o'){const rk=[0,1,2,3].sort((a,b)=>v.sc[b]-v.sc[a]);return `<div class="rh">対局終了</div><div class="fin">${rk.map((i,n)=>`<div class="fr${n==0?' f1':''}"><i>${n+1}位</i><span>${esc(v.n[i])}</span><b>${v.sc[i]}</b></div>`).join('')}</div><button class="go" style="margin-top:30px" onclick="resetAll()">ロビーに戻る</button>`}
+ if(r.draw)return `<div class="rh">${lab} ${r.ng.length?'流し満貫':'流局'}</div>${sbH(v,r,!r.ng.length)}<div class="nxt">${nx}</div>`;
+ const w=r.w,ym=r.ym,lb=ym?'役満':r.h>=11?'三倍満':r.h>=8?'倍満':r.h>=6?'跳満':r.h>=5||(r.fu*2**(r.h+2)>=2000)?'満貫':'';
+ const slot=(a)=>[0,1,2,3,4].map(i=>i<a.length?T(a[i],'rb'):'<span class="tl rb ob"></span>').join('');
+ return `<div class="rh">${lab}　${WN(w,v)}家　${r.ts?'ツモ':'ロン'}和了</div>
+ <div class="wh">${r.hands[w].map(t=>T(t,'rb')).join('')}<span class="gp"></span>${T(r.tile,'rb')}${v.melds[w].length?'<span class="gp"></span>'+v.melds[w].map(m=>meldH(m,w,'rb')).join('<span class="gp"></span>'):''}</div>
+ <div class="wc"><b>${WN(w,v)}</b>${esc(v.n[w])}</div>
+ <table class="yt">${r.y.map(x=>`<tr><td>${x[0]}</td><td>${x[1]>=13?'役満':x[1]+'翻'}</td></tr>`).join('')}</table>
+ <div class="dsp"><h5>ドラ表示牌</h5><div>${slot(r.di)}</div><div>${slot(r.ui)}</div></div>
+ <div class="pts"><div class="fh2">${ym?lb:r.fu+'符'+r.h+'翻'}${!ym&&lb?'　'+lb:''}</div><div class="pp"><b class="cu" data-a="0" data-b="${r.ch[w]}">0</b><small>点</small></div></div>
+ ${sbH(v,r,false)}<div class="nxt">${nx}</div>`}
+function render(v){V=v;const now=Date.now();
+ if(PV&&PV.river){for(let i=0;i<4;i++){const a=v.river[i],b=PV.river[i];if(a.length>b.length)anim.r={i,t:a[a.length-1],at:now}}if(v.drawn>=0&&v.drawn!=PV.drawn)anim.d={t:v.drawn,at:now}}
+ PV=v;if(!(v.ph=='d'&&v.turn==v.me)){sel=-1;ar=0}
+ const seat=q=>(v.me+q)%4,at=v.ph=='d'&&v.turn==v.me,o=v.o||{},rot=[0,-90,180,90],lab=(v.kyoku<4?'東':'南')+NM[v.kyoku%4]+'局',st=68-Math.ceil((v.wall+14)/2);
+ let h=`<div class="tbl"><i class="fl"></i><i class="sd"></i><i class="sl"></i><i class="sr"></i></div>`;
+ for(let q=0;q<4;q++){const i=seat(q),wd=(i-v.dealer+4)%4,j0=Math.max(0,st-wd*17),nw=17-j0;
+  h+=`<div class="sg" style="transform:translateZ(1px) rotate(${rot[q]}deg)">`
+  +(nw>0?`<div class="wl" style="left:${-221+j0*26}px;width:${nw*26}px"><i class="tp"></i><i class="fr"></i><i class="bk"></i></div>`:'')
+  +`<div class="pad${v.turn==i&&(v.ph=='d'||v.ph=='c')?' on':''}${wd==0?' dl':''}"><span>${W[wd]}</span><b>${v.sc[i]}</b></div>`
   +(v.rii[i]?'<div class="stk"></div>':'')
-  +`<div class="rvw">${v.river[i].map((t,j)=>`<span class="rv${v.ri[i]==j?' rr':''}${t==v.lt?' lst':''}">${T(t,'rt')}</span>`).join('')}</div>`
-  +(q?`<div class="ohw" style="left:${-v.hn[i]*14.5}px">${'<span class="tl fd fh"></span>'.repeat(v.hn[i])}</div>`:'')
-  +`<div class="mlw">${v.melds[i].map(m=>`<div>${m.t.map((t,j)=>m.cl&&(j==0||j==3)?'<span class="tl fd rt"></span>':T(t,'rt')).join('')}</div>`).join('')}</div>`
-  +`<div class="tgw"><div class="tg" style="transform:rotate(${-rot[q]}deg)">${esc(v.n[i])}${v.rii[i]?'<em>リーチ</em>':''}</div></div></div>`}
+  +`<div class="rvw">${v.river[i].map((t,j)=>{const nr=anim.r&&anim.r.i==i&&anim.r.t==t&&now-anim.r.at<600;return `<span class="rv${v.ri[i]==j?' rr':''}${t==v.lt?' lst':''}${nr?' new':''}">${T(t,'rt')}</span>`}).join('')}</div>`
+  +(q?`<div class="ohw" style="left:${-(v.hn[i]*29+v.melds[i].reduce((a,m)=>a+m.t.length*29+8,0))/2}px">${'<span class="tl fd fh"></span>'.repeat(v.hn[i])}${v.melds[i].map(m=>'<span class="gp"></span>'+meldH(m,i,'rt')).join('')}</div>`:'')
+  +`<div class="tgw"><div class="tg" style="transform:rotate(${-rot[q]}deg)">${esc(v.n[i])}${v.rii[i]?'<em>リーチ</em>':''}${i==v.me&&v.fu?'<em class="fu">フリテン</em>':''}</div></div></div>`}
+ h+=`<div class="sg" style="transform:translateZ(1px)"><div class="cbx"><i class="cf"></i><i class="cb2"></i><i class="cl"></i><i class="cr"></i><div class="cbt"><div class="cm"><div class="rd">${lab}</div><div class="rm">残 ${v.wall}</div>${v.hb?`<div class="hb2">${v.hb}本場</div>`:''}</div></div></div></div>`;
  $('#plane').innerHTML=h;
  $('#hud').innerHTML=`<div class="hu"><div class="hr"><i class="sk r"></i><b>${v.pot}</b></div><div class="hr"><i class="sk"></i><b>${v.hb}</b></div><div class="drs">${[0,1,2,3,4].map(i=>i<v.dr.length?T(v.dr[i],'sm'):'<span class="tl sm ob"></span>').join('')}</div></div>`;
  $('#top').innerHTML=`<span class="rl">${v.room?'部屋 '+v.room:'ひとり'}</span><span class="tb" onclick="yakuM()">役表</span><span class="tb" onclick="rulesM()">ルール設定</span><span class="tb" onclick="menuM()">☰ メニュー</span>`;
- const ht=t=>{const can=at&&(!v.rii[v.me]||t==v.drawn)&&(!ar||(o.rii||[]).includes(t));return T(t,'mh'+(sel==t?' sel':'')+(at&&!can?' dim':''),can?`onclick="pick(${t})"`:'')};
- $('#hd').innerHTML=v.hand.map(ht).join('')+(v.drawn>=0?'<span class="gp"></span>'+ht(v.drawn):'')+(at?`<div class="hint">${pref.dbl?'牌をダブルクリックで捨てる':'牌をクリックで捨てる'}</div>`:'');
+ const ht=t=>{const can=at&&(!v.rii[v.me]||t==v.drawn)&&(!ar||(o.rii||[]).includes(t)),nd=anim.d&&anim.d.t==t&&now-anim.d.at<600;return T(t,'mh'+(sel==t?' sel':'')+(at&&!can?' dim':'')+(nd?' nw':''),`data-t="${t}" ${can?`onclick="pick(${t})"`:''}`)};
+ $('#hd').innerHTML=`<div class="hrow">${v.hand.map(ht).join('')}${v.drawn>=0?'<span class="gp"></span>'+ht(v.drawn):''}${v.melds[v.me].map(m=>'<span class="gp"></span>'+meldH(m,v.me,'mm')).join('')}</div>`+(at?`<div class="hint">${pref.dbl?'牌をダブルクリックで捨てる':'牌をクリックで捨てる'}</div>`:'');
  $('#pr').innerHTML=prompt_(v);
- const ov=$('#ov');if(v.ph=='e'||v.ph=='o'){ov.innerHTML=resHTML(v);ov.style.display='flex'}else ov.style.display='none';
+ const ov=$('#ov'),was=ov.style.display=='flex'&&ov.dataset.k==v.sq+'/'+v.ph;
+ if(v.ph=='e'||v.ph=='o'){if(!was){ov.innerHTML=resHTML(v);ov.dataset.k=v.sq+'/'+v.ph;animCU()}ov.style.display='flex'}else{ov.style.display='none';ov.dataset.k=''}
  if(v.ph=='c'&&v.o&&!pref.naki&&!v.o.ron&&lastAuto!=v.sq){lastAuto=v.sq;setTimeout(()=>A({k:'pass'}),60)}}
 function fit(){const k=Math.min(innerWidth/1000,innerHeight/620);$('#st').style.transform=`scale(${k}) translate(-50%,-50%)`}
 addEventListener('resize',fit);fit();lobby();
