@@ -186,3 +186,27 @@ button{font:inherit}
 .wt{color:#cfd8c4;font-size:15px}
 
 .lk{margin-top:6px}.lk input{width:100%;font-size:12px;padding:6px;margin:0 0 6px}
+
+/* ===== v4: 参考画像に合わせた中央ボックス・壁牌の廃止・カメラ調整 ===== */
+#scene{perspective:1500px;perspective-origin:50% 18%}
+#plane{top:300px;transform:rotateX(44deg)}
+.tbl{left:-370px;top:-370px;width:740px;height:740px}
+.tbl .sd{top:740px;width:740px}.tbl .sl,.tbl .sr{height:740px}.tbl .sr{left:740px}
+body.blue #felt{background:radial-gradient(ellipse at 50% 28%,#26324a 0%,#10151f 60%,#06080c 100%)}
+body.blue .tbl .fl{background:radial-gradient(ellipse at 50% 45%,#4a78d0,#2b4ca0 55%,#182f70);border-color:#3b2a1c}
+.wl{display:none}
+.rt{--w:30px;--h:41px;--d:3px}.fh{--w:30px;--h:42px;--d:4px;margin-right:1px}
+.rvw{left:-93px;top:124px;width:186px}
+.rv{width:31px;height:43px}.rv.rr{width:43px}.rv.rr .tl{margin:-20px 0 0 -15px}
+.ohw{top:292px}
+.cbx{left:-110px;top:-110px;width:220px;height:220px}
+.cbx .cf,.cbx .cb2{width:220px}.cbx .cf{top:220px}
+.cbx .cl,.cbx .cr{height:220px}.cbx .cr{left:220px}
+.cm{left:50px;right:auto;top:50px;width:120px;height:120px;border:1px solid #6b83bd99;border-radius:8px;background:rgba(5,12,30,.65);display:flex;flex-direction:column;justify-content:center;gap:2px;text-align:center;box-shadow:inset 0 0 18px rgba(80,140,255,.25)}
+.rd{font-size:27px;letter-spacing:.05em}.rm{font-size:15px}.hb2{font-size:13px}
+.pad{left:-75px;top:76px;width:150px;height:24px;gap:8px;border-radius:6px;transform:translateZ(19px)}
+.pad span{width:20px;height:20px;line-height:20px;text-align:center;border-radius:4px;background:#2a4a9a;font-size:14px;color:#fff}
+.pad.dl span{background:#c0392b;color:#fff}
+.pad b{font-size:17px;letter-spacing:.03em}
+.cn{position:absolute;width:18px;height:18px;transform:rotate(45deg);background:linear-gradient(#3b5db0,#1a2f6a);border:1px solid #8fb0f0;text-decoration:none}
+.cn.a{left:-9px;top:-9px}.cn.b{right:-9px;top:-9px}.cn.c{left:-9px;bottom:-9px}.cn.d{right:-9px;bottom:-9px}
