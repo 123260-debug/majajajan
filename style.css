@@ -184,3 +184,5 @@ button{font:inherit}
 .fr.f1{background:linear-gradient(#5a4210,#2a1e06);border-color:#ffd54a;font-size:28px}.fr i{font-style:normal;color:#ffe9a8;min-width:44px}.fr span{flex:1}
 #ov>.go{left:50%;transform:translateX(-50%)}
 .wt{color:#cfd8c4;font-size:15px}
+
+.lk{margin-top:6px}.lk input{width:100%;font-size:12px;padding:6px;margin:0 0 6px}

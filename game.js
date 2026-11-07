@@ -189,53 +189,107 @@ function start(){G={sc:Array(4).fill(RULE.pts),dealer:0,kyoku:0,pot:0,hb:0,sq:0,
 /* ---------- 通信(PeerJS: 部屋コード方式) ---------- */
 const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'},{urls:'stun:global.stun.twilio.com:3478'}]};
 const ERR={'peer-unavailable':'その部屋コードの部屋が見つかりません。コードと、ホストが待機中かを確認してください','network':'PeerJSサーバーに接続できません。少し待って再試行してください','server-error':'PeerJSサーバーが応答しません','socket-error':'サーバーとの通信に失敗しました','webrtc':'WebRTC通信のエラーです','browser-incompatible':'このブラウザは対応していません'};
-const peerOpts=()=>pref.srv?{host:pref.srv,port:443,secure:true,path:'/'}:{};
+const DEFAULT_SRV='';/* 自分の通信サーバーを使う場合はここに「xxxx.onrender.com」のように書く */
+const peerOpts=()=>{const h=pref.srv||DEFAULT_SRV;return h?{host:h,port:443,secure:true,path:'/'}:{}};
 async function diag(){const out=[],add=(ok,t)=>out.push((ok?'✅ ':'❌ ')+t),show=()=>{const e=$('#nt');if(e){e.style.color='#f4ecd0';e.style.textAlign='left';e.innerHTML=out.join('<br>')}};
  add(typeof Peer!=='undefined','通信ライブラリ(PeerJS)の読み込み');add(typeof RTCPeerConnection!=='undefined','WebRTC対応ブラウザ');show();
- try{await fetch('https://0.peerjs.com/',{mode:'no-cors'});add(1,'PeerJSサーバーに到達できる')}catch(e){add(0,'PeerJSサーバーに到達できない(学校・会社のネットワークが遮断している可能性)')}show();
- try{await new Promise((res,rej)=>{const w=new WebSocket('wss://0.peerjs.com/peerjs?key=peerjs&id=diag'+Date.now()+'&token=x'),t=setTimeout(()=>{w.close();rej()},6000);w.onopen=()=>{clearTimeout(t);w.close();res()};w.onerror=()=>{clearTimeout(t);rej()}});add(1,'WebSocket接続できる')}catch(e){add(0,'WebSocket接続できない(これが✅でないと部屋は作れません)')}show();
+ try{await fetch('https://'+(pref.srv||DEFAULT_SRV||'0.peerjs.com')+'/',{mode:'no-cors'});add(1,'PeerJSサーバーに到達できる')}catch(e){add(0,'PeerJSサーバーに到達できない(学校・会社のネットワークが遮断している可能性)')}show();
+ try{await new Promise((res,rej)=>{const w=new WebSocket('wss://'+(pref.srv||DEFAULT_SRV||'0.peerjs.com')+'/peerjs?key=peerjs&id=diag'+Date.now()+'&token=x'),t=setTimeout(()=>{w.close();rej()},6000);w.onopen=()=>{clearTimeout(t);w.close();res()};w.onerror=()=>{clearTimeout(t);rej()}});add(1,'WebSocket接続できる')}catch(e){add(0,'WebSocket接続できない(これが✅でないと部屋は作れません)')}show();
+ try{await fetch(NT,{mode:'no-cors'});add(1,'別方式の通信サーバー(ntfy.sh)に到達できる')}catch(e){add(0,'別方式の通信サーバー(ntfy.sh)に到達できない')}show();
  try{const ok=await new Promise(res=>{const pc=new RTCPeerConnection(ICE);pc.createDataChannel('x');let f=0;pc.onicecandidate=e=>{if(e.candidate&&/srflx/.test(e.candidate.candidate)){f=1;res(1)}};pc.createOffer().then(o=>pc.setLocalDescription(o));setTimeout(()=>{res(f);pc.close()},5000)});add(ok,ok?'STUN(外部IPの取得)ができる':'STUN(外部IP)を取得できない。別の回線の人とは繋がりにくい')}catch(e){add(0,'WebRTCを開始できない')}show();
  out.push('<br>この結果を教えてください。');show()}
+const shareUrl=()=>(typeof location!='undefined'?location.origin+location.pathname:'')+'?room='+room;
+function cp(){const u=shareUrl(),ok=()=>note('招待リンクをコピーしました',0);try{navigator.clipboard.writeText(u).then(ok,()=>{const i=document.querySelector('.lk input');i.select();document.execCommand('copy');ok()})}catch(e){const i=document.querySelector('.lk input');i.select();document.execCommand('copy');ok()}}
+function sh(){navigator.share({title:'麻雀オンライン',text:'麻雀の部屋 '+room+' に参加しよう',url:shareUrl()}).catch(()=>{})}
+function listRooms(){if(typeof Peer==='undefined')return note('通信ライブラリを読み込めません',1);note('部屋を探しています…');
+ const p=new Peer({config:ICE,...peerOpts()});const tm=setTimeout(()=>{note('一覧を取得できませんでした。部屋一覧は、自分の通信サーバー(peer-server.zip)でのみ使えます',1);try{p.destroy()}catch(e){}},10000);
+ p.on('error',e=>{clearTimeout(tm);note('エラー: '+(ERR[e.type]||e.type),1)});
+ p.on('open',()=>p.listAllPeers(l=>{clearTimeout(tm);p.destroy();const r=(l||[]).filter(x=>/^mjrm-\d{4}$/.test(x)).map(x=>x.slice(5)),e=$('#rl');
+  if(e)e.innerHTML=r.length?r.map(c=>`<button class="pb bl" style="margin:4px" onclick="$('#code').value='${c}';join()">部屋 ${c}</button>`).join(''):'<div style="font-size:13px;color:#b9c4ac;margin-top:6px">いま開いている部屋はありません</div>';note(r.length?'入りたい部屋を選んでください':'')}))}
 function note(t,bad){const e=$('#nt');if(e){e.textContent=t;e.style.color=bad?'#ff9a8a':'#b9e6b0'}else alert(t)}
 function setName(){names[0]=esc($('#nm')&&$('#nm').value)||names[0]||'あなた'}
-function resetAll(){try{peer&&peer.destroy()}catch(e){}clearTimeout(hostTm);G=null;V=null;isHost=false;peer=null;hc=null;seatConn={};bots=[0,1,1,1];names=['あなた','CPU1','CPU2','CPU3'];room='';me=0;ar=0;sel=-1;
+function resetAll(){try{peer&&peer.destroy()}catch(e){}try{ntES&&ntES.close()}catch(e){}ntES=null;try{manC&&manC.close()}catch(e){}manC=null;clearTimeout(hostTm);G=null;V=null;isHost=false;peer=null;hc=null;seatConn={};bots=[0,1,1,1];names=['あなた','CPU1','CPU2','CPU3'];room='';me=0;ar=0;sel=-1;
  $('#rm').textContent='';$('#ov').style.display='none';$('#pr').innerHTML='';$('#hd').innerHTML='';$('#plane').innerHTML='';$('#hud').innerHTML='';$('#top').innerHTML='';closeM();$('#lb').style.display='flex';lobby()}
 function leave(){if(confirm('対局・部屋から退出してロビーに戻りますか?'))resetAll()}
-function host(){setName();if(typeof Peer==='undefined')return note('通信ライブラリ(PeerJS)を読み込めませんでした。ネット接続を確認して再読み込みしてください',1);
+let ntES=null,manC=null;
+const NT='https://ntfy.sh/',ntT=(c,x)=>'mjrm-'+c+'-'+x;
+const ntSub=(t,fn)=>{const es=new EventSource(NT+t+'/sse');es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event=='message')fn(m.message)}catch(x){}};return es};
+const ntPub=(t,x)=>x.length>3900?Promise.reject('コードが長すぎます(手動接続をお使いください)'):fetch(NT+t,{method:'POST',body:x});
+/* WebRTCを直接使う接続(PeerJSと同じ形で扱えるようにしたもの) */
+function RC(offerer){const o={h:{},metadata:{},pc:new RTCPeerConnection(ICE),dc:null,op:false,cl:false,
+  on(e,f){(o.h[e]=o.h[e]||[]).push(f);return o},emit(e,a){(o.h[e]||[]).slice().forEach(f=>f(a))},
+  send(m){try{if(o.dc&&o.dc.readyState=='open')o.dc.send(JSON.stringify(m))}catch(x){}},
+  die(){if(o.cl)return;o.cl=true;o.emit('close')},close(){try{o.pc.close()}catch(x){}o.die()}};
+ const bind=dc=>{o.dc=dc;dc.onopen=()=>{o.op=true;o.emit('open')};dc.onmessage=e=>{try{o.emit('data',JSON.parse(e.data))}catch(x){}};dc.onclose=()=>o.die()};
+ if(offerer)bind(o.pc.createDataChannel('g'));else o.pc.ondatachannel=e=>bind(e.channel);
+ o.pc.onconnectionstatechange=()=>{if(o.pc.connectionState=='failed')o.die()};
+ const gather=()=>new Promise(res=>{if(o.pc.iceGatheringState=='complete')return res();const f=()=>{if(o.pc.iceGatheringState=='complete'){o.pc.removeEventListener('icegatheringstatechange',f);res()}};o.pc.addEventListener('icegatheringstatechange',f);setTimeout(res,4000)});
+ o.offer=async()=>{await o.pc.setLocalDescription(await o.pc.createOffer());await gather();return JSON.stringify(o.pc.localDescription)};
+ o.answer=async off=>{await o.pc.setRemoteDescription(JSON.parse(off));await o.pc.setLocalDescription(await o.pc.createAnswer());await gather();return JSON.stringify(o.pc.localDescription)};
+ o.accept=async ans=>{await o.pc.setRemoteDescription(JSON.parse(ans))};
+ return o}
+function hostConn(c){c.on('open',()=>{const s=[1,2,3].find(i=>!seatConn[i]);
+  if(!s||G){c.send({t:'full'});setTimeout(()=>c.close(),300);return}
+  seatConn[s]=c;bots[s]=0;names[s]=esc(c.metadata&&c.metadata.name)||'プレイヤー'+s;c.send({t:'seat',s});lobby();
+  c.on('data',m=>{if(m.t=='a')act(s,m.a)});
+  c.on('close',()=>{if(seatConn[s]!==c)return;delete seatConn[s];bots[s]=1;names[s]='CPU'+s;lobby();if(G){send();if(G.ph=='d'||G.ph=='c')bot()}})})}
+function wireGuest(c,code,onOk){let inRoom=0;hc=c;
+ c.on('open',()=>{onOk();note('入室処理中…')});
+ c.on('error',e=>note('通信エラー: '+e,1));
+ c.on('data',m=>{onOk();
+  if(m.t=='seat'){inRoom=1;me=m.s;room=code;$('#rm').textContent=code;$('#lb').innerHTML=shell('<h3>入室しました</h3><p style="font-size:14px">ホストの開始を待っています…</p><div class="bar"><button class="pb" onclick="resetAll()">← 退室</button></div>')}
+  if(m.t=='full')note('満席、または対局が始まっています',1);
+  if(m.t=='v'){$('#lb').style.display='none';render(m.v)}});
+ c.on('close',()=>{if(inRoom){resetAll();note('ホストとの接続が切れました',1)}})}
+
+/* 方式1: PeerJS(4桁) */
+function host(){setName();if(typeof Peer==='undefined')return hostN();
  isHost=true;me=0;note('部屋を作成中…');clearTimeout(hostTm);
- hostTm=setTimeout(()=>{if(!$('#rm').textContent){isHost=false;if(peer)peer.destroy();lobby();note('部屋を作れません。PeerJSの公開サーバーに接続できていません。「接続診断」を押して結果を確認するか、「ひとりで遊ぶ」をお使いください',1)}},12000);
+ hostTm=setTimeout(()=>{if(!$('#rm').textContent){try{peer.destroy()}catch(e){}note('標準の通信サーバーに繋がらないため、別の方式で作成します…');hostN()}},9000);
  tryRoom()}
 function solo(){setName();isHost=true;me=0;room='';bots=[0,1,1,1];start()}
 function tryRoom(){room=''+(1000+Math.random()*9000|0);if(peer)peer.destroy();peer=new Peer('mjrm-'+room,{config:ICE,...peerOpts()});
- peer.on('error',e=>{if(e.type=='unavailable-id')return tryRoom();isHost=false;lobby();note('エラー: '+(ERR[e.type]||e.type),1)});
+ peer.on('error',e=>{if(e.type=='unavailable-id')return tryRoom();clearTimeout(hostTm);note('標準の通信サーバーに繋がらないため、別の方式で作成します…');hostN()});
  peer.on('disconnected',()=>{try{peer.reconnect()}catch(e){}});
  peer.on('open',()=>{clearTimeout(hostTm);$('#rm').textContent=room;lobby()});
- peer.on('connection',c=>{const s=[1,2,3].find(i=>!seatConn[i]);
-  if(!s||G){c.on('open',()=>{c.send({t:'full'});setTimeout(()=>c.close(),300)});return}
-  c.on('open',()=>{seatConn[s]=c;bots[s]=0;names[s]=esc(c.metadata&&c.metadata.name)||'プレイヤー'+s;c.send({t:'seat',s});lobby()});
-  c.on('data',m=>{if(m.t=='a')act(s,m.a)});
-  c.on('close',()=>{if(seatConn[s]!==c)return;delete seatConn[s];bots[s]=1;names[s]='CPU'+s;lobby();if(G){send();if(G.ph=='d'||G.ph=='c')bot()}})})}
+ peer.on('connection',hostConn)}
+/* 方式2: ntfy.sh経由で自動接続(6桁) */
+function hostN(){if(typeof RTCPeerConnection==='undefined'||typeof EventSource==='undefined')return note('このブラウザは対応していません',1);
+ try{peer&&peer.destroy()}catch(e){}peer=null;clearTimeout(hostTm);try{ntES&&ntES.close()}catch(e){}
+ isHost=true;me=0;room=''+(100000+Math.random()*900000|0);$('#rm').textContent='';note('別の方式で部屋を作成中…');
+ const es=ntES=ntSub(ntT(room,'h'),async txt=>{try{const m=JSON.parse(txt),c=RC(false);c.metadata={name:m.n};hostConn(c);await ntPub(ntT(room,'g'+m.i),await c.answer(m.o))}catch(e){}});
+ es.onopen=()=>{clearTimeout(hostTm);$('#rm').textContent=room;lobby()};
+ hostTm=setTimeout(()=>{if(!$('#rm').textContent){try{es.close()}catch(e){}isHost=false;lobby();note('どの方式でも部屋を作れません。ネットワークが遮断している可能性があります。「手動で部屋を作る」を試すか、別の回線でお試しください',1)}},12000)}
+async function joinN(code){note('接続中…');let ok=0;const c=RC(true),id=Math.random().toString(36).slice(2,8);
+ const tm=setTimeout(()=>{if(!ok){note('接続できませんでした。コードと、ホストの待機状態を確認してください',1);try{ntES.close()}catch(e){}c.close()}},20000);
+ try{try{ntES&&ntES.close()}catch(e){}ntES=ntSub(ntT(code,'g'+id),async a=>{try{await c.accept(a)}catch(e){}});
+  await new Promise(r=>{ntES.onopen=r;setTimeout(r,3000)});
+  const o=await c.offer();wireGuest(c,code,()=>{ok=1;clearTimeout(tm)});
+  await ntPub(ntT(code,'h'),JSON.stringify({i:id,n:names[0],o}))}catch(e){clearTimeout(tm);note('通信エラー: '+e,1)}}
+/* 方式3: 手動(コードをコピーして送り合う。サーバー不要) */
+function manHost(){setName();isHost=true;me=0;room='手動';$('#rm').textContent=room;lobby()}
+function manAddM(){md(`<h2>友達を手動で招待</h2><p>1. 友達が「手動で入室」で作ったコードを貼り付けます。</p><textarea id="mo" rows="4" style="width:100%"></textarea><button class="bk2" onclick="manAns()">返信コードを作る</button><p>2. 出てきた返信コードを友達に送ります。</p><textarea id="ma" rows="4" style="width:100%" readonly></textarea><button class="bk2" onclick="closeM()">← 閉じる</button>`)}
+async function manAns(){try{const m=JSON.parse(atob($('#mo').value.trim())),c=RC(false);c.metadata={name:m.n};hostConn(c);$('#ma').value=btoa(await c.answer(m.o));$('#ma').select()}catch(e){alert('コードが正しくありません')}}
+function manJoin(){setName();md(`<h2>手動で入室</h2><p>1. 下のコードをホストに送ります。</p><textarea id="mg" rows="4" style="width:100%" readonly>作成中…</textarea><p>2. ホストから届いた返信コードを貼って「接続」を押します。</p><textarea id="mr" rows="4" style="width:100%"></textarea><button class="bk2" onclick="manGo()">接続</button><button class="bk2" onclick="closeM()">← 戻る</button>`);
+ manC=RC(true);wireGuest(manC,'手動',()=>{});manC.offer().then(o=>{$('#mg').value=btoa(JSON.stringify({n:names[0],o}));$('#mg').select()})}
+async function manGo(){try{await manC.accept(atob($('#mr').value.trim()));closeM();$('#lb').style.display='flex';note('接続中…')}catch(e){alert('コードが正しくありません')}}
 function join(){setName();const code=($('#code').value||'').trim();
- if(!/^\d{4}$/.test(code))return note('4桁の部屋コードを入力してください',1);
- note('接続中…');let ok=0,inRoom=0;if(peer)peer.destroy();peer=new Peer({config:ICE,...peerOpts()});
+ if(/^\d{6}$/.test(code))return joinN(code);
+ if(!/^\d{4}$/.test(code))return note('4桁または6桁の部屋コードを入力してください',1);
+ note('接続中…');let ok=0;if(peer)peer.destroy();peer=new Peer({config:ICE,...peerOpts()});
  const tm=setTimeout(()=>{if(!ok){note('接続できませんでした。コードとホストの待機状態を確認してください。回線が違う相手とは繋がらない場合があります',1);peer.destroy()}},15000);
  peer.on('error',e=>{clearTimeout(tm);note('入室できません: '+(ERR[e.type]||e.type),1)});
- peer.on('open',()=>{note('部屋を探しています…');hc=peer.connect('mjrm-'+code,{metadata:{name:names[0]},reliable:true});
-  hc.on('open',()=>{ok=1;clearTimeout(tm);note('入室処理中…')});
-  hc.on('error',e=>note('通信エラー: '+e,1));
-  hc.on('data',m=>{ok=1;clearTimeout(tm);
-   if(m.t=='seat'){inRoom=1;me=m.s;room=code;$('#rm').textContent=code;$('#lb').innerHTML=shell('<h3>入室しました</h3><p style="font-size:14px">ホストの開始を待っています…</p><div class="bar"><button class="pb" onclick="resetAll()">← 退室</button></div>')}
-   if(m.t=='full')note('満席、または対局が始まっています',1);
-   if(m.t=='v'){$('#lb').style.display='none';render(m.v)}});
-  hc.on('close',()=>{if(inRoom){resetAll();note('ホストとの接続が切れました',1)}})})}
+ peer.on('open',()=>{note('部屋を探しています…');const c=peer.connect('mjrm-'+code,{metadata:{name:names[0]},reliable:true});wireGuest(c,code,()=>{ok=1;clearTimeout(tm)})})}
 
 /* ---------- ロビー・モーダル ---------- */
 function dec(){return [[33,'5%','10%',-12],[4,'86%','16%',10],[31,'9%','66%',8],[27,'84%','64%',-8],[13,'44%','80%',5],[22,'50%','2%',-6],[12,'72%','40%',14],[0,'18%','36%',-16]].map(([k,l,t,r])=>`<span class="dc" style="left:${l};top:${t};transform:rotate(${r}deg)">${T(k*4,'')}</span>`).join('')}
 function shell(x){return dec()+`<div class="box"><h1>麻雀</h1><div class="sub">オンライン対戦</div>${x}<div id="nt" class="nt"></div></div>`}
 function lobby(){const L=$('#lb');if(G)return;
- const sub=`<div class="bar"><button class="pb bl" onclick="yakuM()">役表</button><button class="pb bl" onclick="rulesM()">ルール設定</button><button class="pb bl" onclick="diag()">接続診断</button></div>`;
- if(!isHost){L.innerHTML=shell(`<input id="nm" placeholder="あなたの名前" maxlength="8"><div class="two"><div><h3>部屋を作る</h3><p style="margin:0 0 12px">友達を招待します</p><button class="pb" onclick="host()">部屋を作る</button><p style="margin-top:14px"><button class="pb bl" onclick="solo()">ひとりで遊ぶ(CPU対戦)</button></p></div><i></i><div><h3>部屋に入る</h3><input id="code" placeholder="部屋コード4桁" maxlength="4"><button class="pb" onclick="join()">入室</button></div></div>${sub}<p>空席はCPUが入ります</p>`);return}
- L.innerHTML=shell(`<h3>部屋コード</h3><div class="code">${room}</div><div class="seats">${names.map((n,i)=>`<div class="seat${i==0?' me':''}"><b>${W[i]}</b>${n}<br><span>${bots[i]?'CPU':'プレイヤー'}</span></div>`).join('')}</div><div class="bar"><button class="pb" onclick="resetAll()">← 戻る</button><button class="pb" onclick="start()">対局開始</button></div>${sub}<p>このコードを友達に伝えてください</p>`)}
+ const sub=`<div class="bar"><button class="pb bl" onclick="yakuM()">役表</button><button class="pb bl" onclick="rulesM()">ルール設定</button><button class="pb bl" onclick="diag()">接続診断</button></div>`,
+  sub2=`<div class="bar"><button class="pb bl" onclick="hostN()">別方式で部屋を作る</button><button class="pb bl" onclick="manHost()">手動で部屋を作る</button><button class="pb bl" onclick="manJoin()">手動で入室</button></div>`;
+ if(!isHost){L.innerHTML=shell(`<input id="nm" placeholder="あなたの名前" maxlength="8"><div class="two"><div><h3>部屋を作る</h3><p style="margin:0 0 12px">友達を招待します</p><button class="pb" onclick="host()">部屋を作る</button><p style="margin-top:14px"><button class="pb bl" onclick="solo()">ひとりで遊ぶ(CPU対戦)</button></p></div><i></i><div><h3>部屋に入る</h3><input id="code" placeholder="部屋コード(4〜6桁)" maxlength="6"><button class="pb" onclick="join()">入室</button><div style="margin-top:8px"><button class="pb bl" onclick="listRooms()">部屋一覧</button></div><div id="rl"></div></div></div>${sub}${sub2}<p>空席はCPUが入ります</p>`);
+  const q=typeof location!='undefined'&&new URLSearchParams(location.search).get('room');if(q&&/^\d{4}$/.test(q)){const e=$('#code');if(e)e.value=q;note('部屋 '+q+' の招待リンクです。名前を入れて「入室」を押してください')}return}
+ L.innerHTML=shell(`<h3>部屋コード</h3><div class="code">${room}</div><div class="seats">${names.map((n,i)=>`<div class="seat${i==0?' me':''}"><b>${W[i]}</b>${n}<br><span>${bots[i]?'CPU':'プレイヤー'}</span></div>`).join('')}</div><div class="bar"><button class="pb" onclick="resetAll()">← 戻る</button><button class="pb" onclick="start()">対局開始</button></div>${sub}${/^\d+$/.test(room)?`<div class="lk"><input readonly value="${shareUrl()}" onclick="this.select()"><div class="bar"><button class="pb bl" onclick="cp()">リンクをコピー</button>${navigator.share?'<button class="pb bl" onclick="sh()">共有</button>':''}</div></div><p>このリンクかコードを友達に送ってください</p>`:''}<div class="bar" style="margin-top:8px"><button class="pb bl" onclick="manAddM()">手動で招待</button></div>`)}
 const md=h=>{const m=$('#md');m.innerHTML=`<div class="mc">${h}</div>`;m.style.display='flex'};
 function closeM(){$('#md').style.display='none'}
 const YK=[['リーチ','1','門前でテンパイ宣言(1000点を供託)',1],['門前清自摸和','1','門前でツモ和了',1],['断么九','1','2〜8の数牌だけ',1],['役牌','1','白・發・中、自風、場風の刻子/槓子',1],['七対子','2','7組の対子',1],['対々和','2','全て刻子(槓子)',1],['混一色','3(鳴き2)','1種の数牌+字牌',1],['清一色','6(鳴き5)','1種の数牌だけ',1],['小三元','2','三元牌の2つが刻子、1つが雀頭',1],['大三元','役満','白發中すべて刻子',1],['字一色','役満','字牌だけ',1],['国士無双','役満','13種の么九牌+1枚',1],['ドラ','1枚ごと','表示牌の次の牌(槓で追加)',1],['平和','1','',0],['一盃口','1','',0],['一発','1','',0],['三色同順','2',' ',0],['一気通貫','2','',0],['混全帯么九','2','',0],['三暗刻','2','',0],['純全帯么九','3','',0],['四暗刻','役満','',0],['嶺上開花・海底・槍槓','1','',0]];
